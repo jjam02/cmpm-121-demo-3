@@ -70,12 +70,15 @@ function makePit(i: number, j: number) {
     const container = document.createElement("div");
     container.innerHTML = `
                 <div>There is a pit here at "${i},${j}". It has  <span id="value">${value}</span> coins.</div>
-                <button class="uiButt" id="col">collect</button> <button class="uiButt" id="dep">deposit</button>`;
+                <button class="uiButt" id="col">collect  <input id="colValue" type="text" placeholder = "0 coins"></button> <button class="uiButt" id="dep">deposit  <input id="depValue" type="text" placeholder = "0 coins"></button>`;
     const collect = container.querySelector<HTMLButtonElement>("#col")!;
+
     collect.addEventListener("click", () => {
-      if (value > 0) {
-        value--;
-        points++;
+      const collectVal =
+        container.querySelector<HTMLButtonElement>("#colValue");
+      if (collectVal!.value && value >= parseInt(collectVal!.value)) {
+        value -= parseInt(collectVal!.value);
+        points += parseInt(collectVal!.value);
       }
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
@@ -83,9 +86,11 @@ function makePit(i: number, j: number) {
     });
     const deposit = container.querySelector<HTMLButtonElement>("#dep")!;
     deposit.addEventListener("click", () => {
-      if (points > 0) {
-        value++;
-        points--;
+      const depositVal =
+        container.querySelector<HTMLButtonElement>("#depValue");
+      if (depositVal && points >= parseInt(depositVal.value)) {
+        value += parseFloat(depositVal.value);
+        points -= parseFloat(depositVal.value);
       }
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
