@@ -12,7 +12,7 @@ const MERRILL_CLASSROOM = leaflet.latLng({
 
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
-const NEIGHBORHOOD_SIZE = 3;
+const NEIGHBORHOOD_SIZE = 5;
 const PIT_SPAWN_PROBABILITY = 0.1;
 
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
@@ -100,6 +100,7 @@ const currentCaches: leaflet.Layer[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No coins yet...";
 let serial = 0;
+const knownCaches = new Map<string, leaflet.Layer>();
 
 const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 
@@ -154,14 +155,23 @@ function makePit(i: number, j: number) {
   });
 
   currentCaches.push(pit);
+  knownCaches.set(`${i},${j}`, pit);
   pit.addTo(map);
 }
+drawLocalCaches();
 
 function drawLocalCaches() {
   const playerLocation = playerMarker.getLatLng();
   board.getCellsNearPoint(playerLocation).forEach((cell) => {
-    if (luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY) {
+    if (
+      luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY &&
+      !knownCaches.has(`${cell.i},${cell.j}`)
+    ) {
+      console.log("new cache pOG");
       makePit(cell.i, cell.j);
+    }
+    if (knownCaches.has(`${cell.i},${cell.j}`)) {
+      knownCaches.get(`${cell.i},${cell.j}`)?.addTo(map);
     }
   });
 }
