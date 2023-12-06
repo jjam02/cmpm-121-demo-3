@@ -5,6 +5,47 @@ export interface Cell {
   readonly j: number;
 }
 
+interface Momento<T> {
+  toMomento(): T;
+  fromMomento(momento: T): void;
+}
+
+export class Coin {
+  readonly i: number;
+  readonly j: number;
+  serial: string;
+
+  constructor(i: number, j: number, id: string) {
+    this.i = i;
+    this.j = j;
+    this.serial = id;
+  }
+
+  toString() {
+    return `'i:${this.i},j:${this.j},${this.serial}'`;
+  }
+}
+
+export class Cache implements Momento<string> {
+  i: number;
+  j: number;
+  coins: Coin[];
+
+  constructor(i: number, j: number, coins: Coin[]) {
+    this.i = i;
+    this.j = j;
+    this.coins = coins;
+  }
+
+  toMomento() {
+    return JSON.stringify(this.coins);
+  }
+
+  fromMomento(momento: string) {
+    this.coins = JSON.parse(momento) as Coin[];
+  }
+}
+
 export class Board {
   readonly tileWidth: number;
   readonly tileVisibilityRadius: number;
@@ -27,9 +68,9 @@ export class Board {
   }
 
   getCellForPoint(point: leaflet.LatLng): Cell {
-    const lat = Math.floor(point.lat / this.tileWidth);
-    const longe = Math.floor(point.lng / this.tileWidth);
-    return this.getCanonicalCell({ i: lat, j: longe });
+    const i = Math.floor(point.lat / this.tileWidth);
+    const j = Math.floor(point.lng / this.tileWidth);
+    return this.getCanonicalCell({ i, j });
   }
 
   getCellBounds(cell: Cell): leaflet.LatLngBounds {
@@ -44,16 +85,18 @@ export class Board {
     const resultCells: Cell[] = [];
     const originCell = this.getCellForPoint(point);
     for (
-      let i = originCell.i - this.tileVisibilityRadius;
-      i < originCell.i + this.tileVisibilityRadius;
+      let i = -this.tileVisibilityRadius;
+      i <= this.tileVisibilityRadius;
       i++
     ) {
       for (
-        let j = originCell.i - this.tileVisibilityRadius;
-        j < originCell.j + this.tileVisibilityRadius;
+        let j = -this.tileVisibilityRadius;
+        j <= this.tileVisibilityRadius;
         j++
       ) {
-        resultCells.push(this.getCanonicalCell({ i, j }));
+        resultCells.push(
+          this.getCanonicalCell({ i: i + originCell.i, j: j + originCell.j })
+        );
       }
     }
     return resultCells;

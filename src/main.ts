@@ -3,6 +3,7 @@ import "./style.css";
 import leaflet from "leaflet";
 import luck from "./luck";
 import "./leafletWorkaround";
+import { Board, Coin, Cache } from "./board";
 
 const MERRILL_CLASSROOM = leaflet.latLng({
   lat: 36.9995,
@@ -11,7 +12,7 @@ const MERRILL_CLASSROOM = leaflet.latLng({
 
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
-const NEIGHBORHOOD_SIZE = 8;
+const NEIGHBORHOOD_SIZE = 5;
 const PIT_SPAWN_PROBABILITY = 0.1;
 
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
@@ -47,64 +48,147 @@ sensorButton.addEventListener("click", () => {
   });
 });
 
-let points = 0;
+function moveBy(offsetLat: number, offsetLng: number) {
+  const pos = playerMarker.getLatLng();
+  playerMarker.setLatLng(
+    leaflet.latLng(pos.lat + offsetLat, pos.lng + offsetLng)
+  );
+  map.setView(playerMarker.getLatLng());
+  clearMap();
+}
+
+function clearMap() {
+  currentLayers.forEach((layer) => {
+    map.removeLayer(layer);
+  });
+  currentCaches.length = 0;
+}
+
+function updateMap(offsetLat: number, offsetLng: number) {
+  saveCacheState();
+  moveBy(offsetLat, offsetLng);
+  clearMap();
+  drawLocalCaches();
+}
+
+const north = document.querySelector("#north")!;
+north.addEventListener("click", () => {
+  updateMap(TILE_DEGREES, 0);
+});
+const south = document.querySelector("#south")!;
+south.addEventListener("click", () => {
+  updateMap(TILE_DEGREES * -1, 0);
+});
+
+const east = document.querySelector("#east")!;
+east.addEventListener("click", () => {
+  updateMap(0, TILE_DEGREES);
+});
+
+const west = document.querySelector("#west")!;
+west.addEventListener("click", () => {
+  updateMap(0, TILE_DEGREES * -1);
+});
+
+const reset = document.querySelector("#reset")!;
+reset.addEventListener("click", () => {
+  const pos = MERRILL_CLASSROOM;
+  playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng - TILE_DEGREES));
+  map.setView(playerMarker.getLatLng());
+  drawLocalCaches();
+});
+
+const playerInventory: Coin[] = [];
+const currentLayers: leaflet.Layer[] = [];
+const currentCaches: Cache[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
-statusPanel.innerHTML = "No points yet...";
+statusPanel.innerHTML = "No coins yet...";
+let serial = 0;
+const knownCaches = new Map<string, string>();
 
-function makePit(i: number, j: number) {
-  const bounds = leaflet.latLngBounds([
-    [
-      MERRILL_CLASSROOM.lat + i * TILE_DEGREES,
-      MERRILL_CLASSROOM.lng + j * TILE_DEGREES,
-    ],
-    [
-      MERRILL_CLASSROOM.lat + (i + 1) * TILE_DEGREES,
-      MERRILL_CLASSROOM.lng + (j + 1) * TILE_DEGREES,
-    ],
-  ]);
+const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 
+function makePit(i: number, j: number, coins = "") {
+  const bounds = board.getCellBounds({ i: i, j: j });
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
+  let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
+  let cacheWallet: Coin[] = [];
+
+  for (let k = 0; k < value; k++) {
+    cacheWallet.push(new Coin(i, j, (serial + 1).toString()));
+    serial++;
+  }
+  const geoCache = new Cache(i, j, cacheWallet);
+  if (coins) {
+    geoCache.fromMomento(coins);
+  }
+  cacheWallet = geoCache.coins;
 
   pit.bindPopup(() => {
-    let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
     const container = document.createElement("div");
     container.innerHTML = `
-                <div>There is a pit here at "${i},${j}". It has  <span id="value">${value}</span> coins.</div>
-                <button class="uiButt" id="col">collect  <input id="colValue" type="text" placeholder = "0 coins"></button> <button class="uiButt" id="dep">deposit  <input id="depValue" type="text" placeholder = "0 coins"></button>`;
+                <div>There is a pit here at "${i},${j}". It has  <span id="value">${cacheWallet.length}</span> coins.</div>
+                <button class="uiButt" id="col">collect  </button> <button class="uiButt" id="dep">deposit  </button>`;
     const collect = container.querySelector<HTMLButtonElement>("#col")!;
 
     collect.addEventListener("click", () => {
-      const collectVal =
-        container.querySelector<HTMLButtonElement>("#colValue");
-      if (collectVal!.value && value >= parseInt(collectVal!.value)) {
-        value -= parseInt(collectVal!.value);
-        points += parseInt(collectVal!.value);
+      if (cacheWallet.length > 0) {
+        const takenCoin = cacheWallet[0];
+        playerInventory.push(takenCoin);
+        cacheWallet.splice(0, 1);
+        value = cacheWallet.length;
+        console.log("collect");
+        console.log("cache", cacheWallet);
+        console.log("player", playerInventory);
       }
+
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
-      statusPanel.innerHTML = `${points} points accumulated`;
+      statusPanel.innerHTML = `${playerInventory.length} points accumulated`;
     });
     const deposit = container.querySelector<HTMLButtonElement>("#dep")!;
     deposit.addEventListener("click", () => {
-      const depositVal =
-        container.querySelector<HTMLButtonElement>("#depValue");
-      if (depositVal && points >= parseInt(depositVal.value)) {
-        value += parseFloat(depositVal.value);
-        points -= parseFloat(depositVal.value);
+      if (playerInventory.length > 0) {
+        cacheWallet.push(playerInventory[0]);
+        playerInventory.splice(0, 1);
+        value = cacheWallet.length;
+        console.log("dep");
+        console.log("cache", cacheWallet);
+        console.log("player", playerInventory);
       }
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
-      statusPanel.innerHTML = `${points} points accumulated`;
+      statusPanel.innerHTML = `${playerInventory.length} points accumulated`;
     });
     return container;
   });
+
+  currentLayers.push(pit);
+  geoCache.coins = cacheWallet;
+  currentCaches.push(geoCache);
   pit.addTo(map);
 }
+drawLocalCaches();
 
-for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
-  for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-    if (luck([i, j].toString()) < PIT_SPAWN_PROBABILITY) {
-      makePit(i, j);
+function drawLocalCaches() {
+  const playerLocation = playerMarker.getLatLng();
+  board.getCellsNearPoint(playerLocation).forEach((cell) => {
+    if (
+      luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY &&
+      !knownCaches.has(`${cell.i},${cell.j}`)
+    ) {
+      makePit(cell.i, cell.j);
     }
-  }
+    if (knownCaches.has(`${cell.i},${cell.j}`)) {
+      const coins = knownCaches.get(`${cell.i},${cell.j}`);
+      makePit(cell.i, cell.j, coins);
+    }
+  });
+}
+
+function saveCacheState() {
+  currentCaches.forEach((cache) => {
+    const memento = cache.toMomento();
+    knownCaches.set(`${cache.i},${cache.j}`, memento);
+  });
 }
