@@ -93,6 +93,7 @@ reset.addEventListener("click", () => {
   const pos = MERRILL_CLASSROOM;
   playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng - TILE_DEGREES));
   map.setView(playerMarker.getLatLng());
+  drawLocalCaches();
 });
 
 const playerInventory: Coin[] = [];
@@ -109,7 +110,7 @@ function makePit(i: number, j: number) {
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
   let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
   const cacheWallet: Coin[] = [];
-  console.log("FILL ME UP");
+
   for (let k = 0; k < value; k++) {
     cacheWallet.push(new Coin(i, j, (serial + 1).toString()));
     serial++;
@@ -167,7 +168,6 @@ function drawLocalCaches() {
       luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY &&
       !knownCaches.has(`${cell.i},${cell.j}`)
     ) {
-      console.log("new cache pOG");
       makePit(cell.i, cell.j);
     }
     if (knownCaches.has(`${cell.i},${cell.j}`)) {
