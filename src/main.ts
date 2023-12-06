@@ -3,6 +3,7 @@ import "./style.css";
 import leaflet from "leaflet";
 import luck from "./luck";
 import "./leafletWorkaround";
+import { Board, Coin } from "./board";
 
 const MERRILL_CLASSROOM = leaflet.latLng({
   lat: 36.9995,
@@ -47,64 +48,68 @@ sensorButton.addEventListener("click", () => {
   });
 });
 
-let points = 0;
+const playerInventory: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
-statusPanel.innerHTML = "No points yet...";
+statusPanel.innerHTML = "No coins yet...";
+let serial = 0;
+
+const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 
 function makePit(i: number, j: number) {
-  const bounds = leaflet.latLngBounds([
-    [
-      MERRILL_CLASSROOM.lat + i * TILE_DEGREES,
-      MERRILL_CLASSROOM.lng + j * TILE_DEGREES,
-    ],
-    [
-      MERRILL_CLASSROOM.lat + (i + 1) * TILE_DEGREES,
-      MERRILL_CLASSROOM.lng + (j + 1) * TILE_DEGREES,
-    ],
-  ]);
-
+  const bounds = board.getCellBounds({ i: i, j: j });
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
+  let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
+  const cacheWallet: Coin[] = [];
+  console.log("FILL ME UP");
+  for (let k = 0; k < value; k++) {
+    cacheWallet.push(new Coin(i, j, (serial + 1).toString()));
+    serial++;
+  }
 
   pit.bindPopup(() => {
-    let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
     const container = document.createElement("div");
     container.innerHTML = `
-                <div>There is a pit here at "${i},${j}". It has  <span id="value">${value}</span> coins.</div>
-                <button class="uiButt" id="col">collect  <input id="colValue" type="text" placeholder = "0 coins"></button> <button class="uiButt" id="dep">deposit  <input id="depValue" type="text" placeholder = "0 coins"></button>`;
+                <div>There is a pit here at "${i},${j}". It has  <span id="value">${cacheWallet.length}</span> coins.</div>
+                <button class="uiButt" id="col">collect  </button> <button class="uiButt" id="dep">deposit  </button>`;
     const collect = container.querySelector<HTMLButtonElement>("#col")!;
 
     collect.addEventListener("click", () => {
-      const collectVal =
-        container.querySelector<HTMLButtonElement>("#colValue");
-      if (collectVal!.value && value >= parseInt(collectVal!.value)) {
-        value -= parseInt(collectVal!.value);
-        points += parseInt(collectVal!.value);
+      if (cacheWallet.length > 0) {
+        const takenCoin = cacheWallet[0];
+        playerInventory.push(takenCoin);
+        cacheWallet.splice(0, 1);
+        value = cacheWallet.length;
+        console.log("collect");
+        console.log("cache", cacheWallet);
+        console.log("player", playerInventory);
       }
+
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
-      statusPanel.innerHTML = `${points} points accumulated`;
+      statusPanel.innerHTML = `${playerInventory.length} points accumulated`;
     });
     const deposit = container.querySelector<HTMLButtonElement>("#dep")!;
     deposit.addEventListener("click", () => {
-      const depositVal =
-        container.querySelector<HTMLButtonElement>("#depValue");
-      if (depositVal && points >= parseInt(depositVal.value)) {
-        value += parseFloat(depositVal.value);
-        points -= parseFloat(depositVal.value);
+      console.log("dep");
+      console.log("cache", cacheWallet);
+      console.log("player", playerInventory);
+
+      if (playerInventory.length > 0) {
+        cacheWallet.push(playerInventory[0]);
+        playerInventory.splice(0, 1);
       }
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
-      statusPanel.innerHTML = `${points} points accumulated`;
+      statusPanel.innerHTML = `${playerInventory.length} points accumulated`;
     });
     return container;
   });
   pit.addTo(map);
 }
 
-for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
-  for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-    if (luck([i, j].toString()) < PIT_SPAWN_PROBABILITY) {
-      makePit(i, j);
-    }
+const playerLocation = playerMarker.getLatLng();
+board.getCellsNearPoint(playerLocation).forEach((cell) => {
+  if (luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY) {
+    makePit(cell.i, cell.j);
   }
-}
+});
