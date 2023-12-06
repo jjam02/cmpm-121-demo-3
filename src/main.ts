@@ -48,31 +48,31 @@ sensorButton.addEventListener("click", () => {
   });
 });
 
+function moveBy(offsetLat: number, offsetLng: number) {
+  const pos = playerMarker.getLatLng();
+  playerMarker.setLatLng(
+    leaflet.latLng(pos.lat + offsetLat, pos.lng + offsetLng)
+  );
+  map.setView(playerMarker.getLatLng());
+}
+
 const north = document.querySelector("#north")!;
 north.addEventListener("click", () => {
-  const pos = playerMarker.getLatLng();
-  playerMarker.setLatLng(leaflet.latLng(pos.lat + TILE_DEGREES, pos.lng));
-  map.setView(playerMarker.getLatLng());
+  moveBy(TILE_DEGREES, 0);
 });
 const south = document.querySelector("#south")!;
 south.addEventListener("click", () => {
-  const pos = playerMarker.getLatLng();
-  playerMarker.setLatLng(leaflet.latLng(pos.lat - TILE_DEGREES, pos.lng));
-  map.setView(playerMarker.getLatLng());
+  moveBy(TILE_DEGREES * -1, 0);
 });
 
 const east = document.querySelector("#east")!;
 east.addEventListener("click", () => {
-  const pos = playerMarker.getLatLng();
-  playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng + TILE_DEGREES));
-  map.setView(playerMarker.getLatLng());
+  moveBy(0, TILE_DEGREES);
 });
 
 const west = document.querySelector("#west")!;
 west.addEventListener("click", () => {
-  const pos = playerMarker.getLatLng();
-  playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng - TILE_DEGREES));
-  map.setView(playerMarker.getLatLng());
+  moveBy(0, TILE_DEGREES * -1);
 });
 
 const reset = document.querySelector("#reset")!;
