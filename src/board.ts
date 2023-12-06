@@ -5,9 +5,14 @@ export interface Cell {
   readonly j: number;
 }
 
+interface Momento<T> {
+  toMomento(): T;
+  fromMomento(momento: T): void;
+}
+
 export class Coin {
-  i: number;
-  j: number;
+  readonly i: number;
+  readonly j: number;
   serial: string;
 
   constructor(i: number, j: number, id: string) {
@@ -18,6 +23,26 @@ export class Coin {
 
   toString() {
     return `'i:${this.i},j:${this.j},${this.serial}'`;
+  }
+}
+
+export class Cache implements Momento<string> {
+  i: number;
+  j: number;
+  coins: Coin[];
+
+  constructor(i: number, j: number, coins: Coin[]) {
+    this.i = i;
+    this.j = j;
+    this.coins = coins;
+  }
+
+  toMomento() {
+    return JSON.stringify(this.coins);
+  }
+
+  fromMomento(momento: string) {
+    this.coins = JSON.parse(momento) as Coin[];
   }
 }
 

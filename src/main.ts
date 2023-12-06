@@ -3,7 +3,7 @@ import "./style.css";
 import leaflet from "leaflet";
 import luck from "./luck";
 import "./leafletWorkaround";
-import { Board, Coin } from "./board";
+import { Board, Coin, Cache } from "./board";
 
 const MERRILL_CLASSROOM = leaflet.latLng({
   lat: 36.9995,
@@ -58,12 +58,14 @@ function moveBy(offsetLat: number, offsetLng: number) {
 }
 
 function clearMap() {
-  currentCaches.forEach((layer) => {
+  currentLayers.forEach((layer) => {
     map.removeLayer(layer);
   });
+  currentCaches.length = 0;
 }
 
 function updateMap(offsetLat: number, offsetLng: number) {
+  saveCacheState();
   moveBy(offsetLat, offsetLng);
   clearMap();
   drawLocalCaches();
@@ -97,24 +99,30 @@ reset.addEventListener("click", () => {
 });
 
 const playerInventory: Coin[] = [];
-const currentCaches: leaflet.Layer[] = [];
+const currentLayers: leaflet.Layer[] = [];
+const currentCaches: Cache[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No coins yet...";
 let serial = 0;
-const knownCaches = new Map<string, leaflet.Layer>();
+const knownCaches = new Map<string, string>();
 
 const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 
-function makePit(i: number, j: number) {
+function makePit(i: number, j: number, coins = "") {
   const bounds = board.getCellBounds({ i: i, j: j });
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
   let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
-  const cacheWallet: Coin[] = [];
+  let cacheWallet: Coin[] = [];
 
   for (let k = 0; k < value; k++) {
     cacheWallet.push(new Coin(i, j, (serial + 1).toString()));
     serial++;
   }
+  const geoCache = new Cache(i, j, cacheWallet);
+  if (coins) {
+    geoCache.fromMomento(coins);
+  }
+  cacheWallet = geoCache.coins;
 
   pit.bindPopup(() => {
     const container = document.createElement("div");
@@ -155,8 +163,9 @@ function makePit(i: number, j: number) {
     return container;
   });
 
-  currentCaches.push(pit);
-  knownCaches.set(`${i},${j}`, pit);
+  currentLayers.push(pit);
+  geoCache.coins = cacheWallet;
+  currentCaches.push(geoCache);
   pit.addTo(map);
 }
 drawLocalCaches();
@@ -171,7 +180,15 @@ function drawLocalCaches() {
       makePit(cell.i, cell.j);
     }
     if (knownCaches.has(`${cell.i},${cell.j}`)) {
-      knownCaches.get(`${cell.i},${cell.j}`)?.addTo(map);
+      const coins = knownCaches.get(`${cell.i},${cell.j}`);
+      makePit(cell.i, cell.j, coins);
     }
+  });
+}
+
+function saveCacheState() {
+  currentCaches.forEach((cache) => {
+    const memento = cache.toMomento();
+    knownCaches.set(`${cache.i},${cache.j}`, memento);
   });
 }
