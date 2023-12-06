@@ -12,7 +12,7 @@ const MERRILL_CLASSROOM = leaflet.latLng({
 
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
-const NEIGHBORHOOD_SIZE = 8;
+const NEIGHBORHOOD_SIZE = 3;
 const PIT_SPAWN_PROBABILITY = 0.1;
 
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
@@ -54,25 +54,38 @@ function moveBy(offsetLat: number, offsetLng: number) {
     leaflet.latLng(pos.lat + offsetLat, pos.lng + offsetLng)
   );
   map.setView(playerMarker.getLatLng());
+  clearMap();
+}
+
+function clearMap() {
+  currentCaches.forEach((layer) => {
+    map.removeLayer(layer);
+  });
+}
+
+function updateMap(offsetLat: number, offsetLng: number) {
+  moveBy(offsetLat, offsetLng);
+  clearMap();
+  drawLocalCaches();
 }
 
 const north = document.querySelector("#north")!;
 north.addEventListener("click", () => {
-  moveBy(TILE_DEGREES, 0);
+  updateMap(TILE_DEGREES, 0);
 });
 const south = document.querySelector("#south")!;
 south.addEventListener("click", () => {
-  moveBy(TILE_DEGREES * -1, 0);
+  updateMap(TILE_DEGREES * -1, 0);
 });
 
 const east = document.querySelector("#east")!;
 east.addEventListener("click", () => {
-  moveBy(0, TILE_DEGREES);
+  updateMap(0, TILE_DEGREES);
 });
 
 const west = document.querySelector("#west")!;
 west.addEventListener("click", () => {
-  moveBy(0, TILE_DEGREES * -1);
+  updateMap(0, TILE_DEGREES * -1);
 });
 
 const reset = document.querySelector("#reset")!;
@@ -83,6 +96,7 @@ reset.addEventListener("click", () => {
 });
 
 const playerInventory: Coin[] = [];
+const currentCaches: leaflet.Layer[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No coins yet...";
 let serial = 0;
@@ -138,12 +152,16 @@ function makePit(i: number, j: number) {
     });
     return container;
   });
+
+  currentCaches.push(pit);
   pit.addTo(map);
 }
 
-const playerLocation = playerMarker.getLatLng();
-board.getCellsNearPoint(playerLocation).forEach((cell) => {
-  if (luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY) {
-    makePit(cell.i, cell.j);
-  }
-});
+function drawLocalCaches() {
+  const playerLocation = playerMarker.getLatLng();
+  board.getCellsNearPoint(playerLocation).forEach((cell) => {
+    if (luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY) {
+      makePit(cell.i, cell.j);
+    }
+  });
+}
