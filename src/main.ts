@@ -124,13 +124,13 @@ function makePit(i: number, j: number) {
     });
     const deposit = container.querySelector<HTMLButtonElement>("#dep")!;
     deposit.addEventListener("click", () => {
-      console.log("dep");
-      console.log("cache", cacheWallet);
-      console.log("player", playerInventory);
-
       if (playerInventory.length > 0) {
         cacheWallet.push(playerInventory[0]);
         playerInventory.splice(0, 1);
+        value = cacheWallet.length;
+        console.log("dep");
+        console.log("cache", cacheWallet);
+        console.log("player", playerInventory);
       }
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
