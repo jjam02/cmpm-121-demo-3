@@ -48,6 +48,40 @@ sensorButton.addEventListener("click", () => {
   });
 });
 
+const north = document.querySelector("#north")!;
+north.addEventListener("click", () => {
+  const pos = playerMarker.getLatLng();
+  playerMarker.setLatLng(leaflet.latLng(pos.lat + TILE_DEGREES, pos.lng));
+  map.setView(playerMarker.getLatLng());
+});
+const south = document.querySelector("#south")!;
+south.addEventListener("click", () => {
+  const pos = playerMarker.getLatLng();
+  playerMarker.setLatLng(leaflet.latLng(pos.lat - TILE_DEGREES, pos.lng));
+  map.setView(playerMarker.getLatLng());
+});
+
+const east = document.querySelector("#east")!;
+east.addEventListener("click", () => {
+  const pos = playerMarker.getLatLng();
+  playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng + TILE_DEGREES));
+  map.setView(playerMarker.getLatLng());
+});
+
+const west = document.querySelector("#west")!;
+west.addEventListener("click", () => {
+  const pos = playerMarker.getLatLng();
+  playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng - TILE_DEGREES));
+  map.setView(playerMarker.getLatLng());
+});
+
+const reset = document.querySelector("#reset")!;
+reset.addEventListener("click", () => {
+  const pos = MERRILL_CLASSROOM;
+  playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng - TILE_DEGREES));
+  map.setView(playerMarker.getLatLng());
+});
+
 const playerInventory: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No coins yet...";
