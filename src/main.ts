@@ -4,7 +4,7 @@ import leaflet from "leaflet";
 import luck from "./luck";
 import "./leafletWorkaround";
 import { Board, Coin, Cache } from "./board";
-//D3.c done comment
+
 const MERRILL_CLASSROOM = leaflet.latLng({
   lat: 36.9995,
   lng: -122.0533,
@@ -60,7 +60,6 @@ sensorButton.addEventListener("click", () => {
 });
 
 function moveBy(offsetLat: number, offsetLng: number) {
-  console.log(playerInventory);
   const pos = playerMarker.getLatLng();
   playerMarker.setLatLng(
     leaflet.latLng(pos.lat + offsetLat, pos.lng + offsetLng)
@@ -159,9 +158,6 @@ function makePit(i: number, j: number, coins = "") {
         playerInventory.push(takenCoin);
         cacheWallet.splice(0, 1);
         value = cacheWallet.length;
-        console.log("collect");
-        console.log("cache", cacheWallet);
-        console.log("player", playerInventory);
       }
 
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
@@ -175,9 +171,6 @@ function makePit(i: number, j: number, coins = "") {
         cacheWallet.push(playerInventory[0]);
         playerInventory.splice(0, 1);
         value = cacheWallet.length;
-        console.log("dep");
-        console.log("cache", cacheWallet);
-        console.log("player", playerInventory);
       }
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
@@ -225,7 +218,6 @@ function savePlayerInv() {
   localStorage.setItem("inv", JSON.stringify(playerInventory));
 }
 function initializeGame() {
-  console.log("setting gmae");
   const playerInventorySaved = localStorage.getItem("inv");
   if (playerInventorySaved) {
     playerInventory = JSON.parse(playerInventorySaved) as Coin[];
