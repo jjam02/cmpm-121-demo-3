@@ -38,6 +38,19 @@ const playerMarker = leaflet.marker(MERRILL_CLASSROOM);
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
+function randomPolyLineColor(): string {
+  const r = Math.floor(Math.random() * 255);
+  const g = Math.floor(Math.random() * 255);
+  const b = Math.floor(Math.random() * 255);
+  console.log("rgb(" + r + " ," + g + "," + b + ")");
+
+  return "rgb(" + r + " ," + g + "," + b + ")";
+}
+
+const playerPolyline = leaflet
+  .polyline([playerMarker.getLatLng()], { color: randomPolyLineColor() })
+  .addTo(map);
+
 const sensorButton = document.querySelector("#sensor")!;
 sensorButton.addEventListener("click", () => {
   navigator.geolocation.watchPosition((position) => {
@@ -64,11 +77,21 @@ function clearMap() {
   currentCaches.length = 0;
 }
 
-function updateMap(offsetLat: number, offsetLng: number) {
+playerMarker.addEventListener("move", () => {
+  updateLine();
+});
+
+function updateMap(offsetLat = 0, offsetLng = 0) {
   saveCacheState();
   moveBy(offsetLat, offsetLng);
   clearMap();
   drawLocalCaches();
+}
+
+function updateLine() {
+  playerPolyline.addLatLng(playerMarker.getLatLng());
+  playerPolyline.setStyle({ color: randomPolyLineColor() });
+  playerPolyline.redraw();
 }
 
 const north = document.querySelector("#north")!;
@@ -127,7 +150,7 @@ function makePit(i: number, j: number, coins = "") {
   pit.bindPopup(() => {
     const container = document.createElement("div");
     container.innerHTML = `
-                <div>There is a pit here at "${i},${j}". It has  <span id="value">${cacheWallet.length}</span> coins.</div>
+                <div style="background-color: black; color:green; font-weight: bold;">There is a pit here at "${i},${j}". It has  <span id="value">${cacheWallet.length}</span> coins.</div>
                 <button class="uiButt" id="col">collect  </button> <button class="uiButt" id="dep">deposit  </button>`;
     const collect = container.querySelector<HTMLButtonElement>("#col")!;
 

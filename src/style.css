@@ -85,6 +85,9 @@ button:focus-visible {
 }
 
 .uiButt {
-  border: 3px solid white;
+  border: 3px solid grey;
   color: green;
+}
+.leaflet-popup-content-wrapper {
+  background-color: #1a1a1a;
 }
