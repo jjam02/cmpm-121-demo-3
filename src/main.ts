@@ -60,6 +60,7 @@ sensorButton.addEventListener("click", () => {
 });
 
 function moveBy(offsetLat: number, offsetLng: number) {
+  console.log(playerInventory);
   const pos = playerMarker.getLatLng();
   playerMarker.setLatLng(
     leaflet.latLng(pos.lat + offsetLat, pos.lng + offsetLng)
@@ -219,10 +220,14 @@ function savePlayerInv() {
   localStorage.setItem("inv", JSON.stringify(playerInventory));
 }
 function initializeGame() {
+  console.log("setting gmae");
   const playerInventorySaved = localStorage.getItem("inv");
   if (playerInventorySaved) {
     playerInventory = JSON.parse(playerInventorySaved) as Coin[];
     statusPanel.innerHTML = `${playerInventory.length} coins collected`;
+  } else {
+    playerInventory = [];
+    statusPanel.innerHTML = "No coins yet...";
   }
 }
 function saveGameState() {
