@@ -113,7 +113,10 @@ west.addEventListener("click", () => {
 
 const reset = document.querySelector("#reset")!;
 reset.addEventListener("click", () => {
-  resetGame();
+  const reset = confirm("do you want to reset the game?");
+  if (reset) {
+    resetGame();
+  }
 });
 
 let playerInventory: Coin[] = [];
@@ -236,6 +239,7 @@ function saveGameState() {
 }
 
 function resetGame() {
+  playerMarker.setLatLng(MERRILL_CLASSROOM);
   serial = 0;
   localStorage.clear();
 
