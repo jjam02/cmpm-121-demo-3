@@ -80,7 +80,6 @@ playerMarker.addEventListener("move", () => {
 });
 
 function updateMap(offsetLat = 0, offsetLng = 0) {
-  saveCacheState();
   moveBy(offsetLat, offsetLng);
   clearMap();
   drawLocalCaches();
@@ -113,19 +112,15 @@ west.addEventListener("click", () => {
 
 const reset = document.querySelector("#reset")!;
 reset.addEventListener("click", () => {
-  const pos = MERRILL_CLASSROOM;
-  playerMarker.setLatLng(leaflet.latLng(pos.lat, pos.lng - TILE_DEGREES));
-  map.setView(playerMarker.getLatLng());
-  drawLocalCaches();
+  resetGame();
 });
 
-const playerInventory: Coin[] = [];
+let playerInventory: Coin[] = [];
 const currentLayers: leaflet.Layer[] = [];
 const currentCaches: Cache[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No coins yet...";
 let serial = 0;
-const knownCaches = new Map<string, string>();
 
 const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 
@@ -165,7 +160,8 @@ function makePit(i: number, j: number, coins = "") {
 
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
-      statusPanel.innerHTML = `${playerInventory.length} points accumulated`;
+      statusPanel.innerHTML = `${playerInventory.length} coins collected`;
+      saveGameState();
     });
     const deposit = container.querySelector<HTMLButtonElement>("#dep")!;
     deposit.addEventListener("click", () => {
@@ -180,6 +176,7 @@ function makePit(i: number, j: number, coins = "") {
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
       statusPanel.innerHTML = `${playerInventory.length} points accumulated`;
+      saveGameState();
     });
     return container;
   });
@@ -190,18 +187,21 @@ function makePit(i: number, j: number, coins = "") {
   pit.addTo(map);
 }
 drawLocalCaches();
+initializeGame();
 
 function drawLocalCaches() {
   const playerLocation = playerMarker.getLatLng();
   board.getCellsNearPoint(playerLocation).forEach((cell) => {
+    const localStoreCache = localStorage.getItem(`${cell.i},${cell.j}`);
+
     if (
       luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY &&
-      !knownCaches.has(`${cell.i},${cell.j}`)
+      !localStoreCache
     ) {
       makePit(cell.i, cell.j);
     }
-    if (knownCaches.has(`${cell.i},${cell.j}`)) {
-      const coins = knownCaches.get(`${cell.i},${cell.j}`);
+    if (localStoreCache) {
+      const coins = localStoreCache;
       makePit(cell.i, cell.j, coins);
     }
   });
@@ -210,6 +210,32 @@ function drawLocalCaches() {
 function saveCacheState() {
   currentCaches.forEach((cache) => {
     const memento = cache.toMomento();
-    knownCaches.set(`${cache.i},${cache.j}`, memento);
+
+    localStorage.setItem(`${cache.i},${cache.j}`, memento);
   });
+}
+
+function savePlayerInv() {
+  localStorage.setItem("inv", JSON.stringify(playerInventory));
+}
+function initializeGame() {
+  const playerInventorySaved = localStorage.getItem("inv");
+  if (playerInventorySaved) {
+    playerInventory = JSON.parse(playerInventorySaved) as Coin[];
+    statusPanel.innerHTML = `${playerInventory.length} coins collected`;
+  }
+}
+function saveGameState() {
+  saveCacheState();
+  savePlayerInv();
+}
+
+function resetGame() {
+  serial = 0;
+  localStorage.clear();
+
+  playerPolyline.setLatLngs([]);
+
+  initializeGame();
+  updateMap();
 }
